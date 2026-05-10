@@ -14,10 +14,7 @@ const {
   SlashCommandBuilder,
 } = require('discord.js');
 const { getVoiceConnection } = require('@discordjs/voice');
-const dvs = require('@dank074/discord-video-stream');
-const Streamer = dvs.Streamer || dvs.default?.Streamer || dvs.default;
-const VideoStream = dvs.VideoStream || dvs.default?.VideoStream;
-const AudioStream = dvs.AudioStream || dvs.default?.AudioStream;
+const { StreamerUDP, VideoStream, AudioStream } = require('@dank074/discord-video-stream');
 const ffmpegPath = 'ffmpeg';
 const { spawn } = require('child_process');
 const https = require('https');
@@ -35,7 +32,7 @@ const client = new Client({
   ],
 });
 
-const streamer = new Streamer(client);
+const streamer = new StreamerUDP(client);
 const activeStreams = new Map();
 
 // Write YouTube cookies to disk on startup
@@ -206,15 +203,7 @@ function stopStream(guildId) {
 // ─── Stream to Discord ────────────────────────────────────────────────────────
 async function streamToDiscord(guildId, channelId, videoUrl, audioUrl) {
   await streamer.joinVoice(guildId, channelId);
-  const udpConn = await streamer.createStream(guildId, {
-    width: 1280,
-    height: 720,
-    fps: 30,
-    bitrateKbps: 2500,
-    maxBitrateKbps: 2500,
-    hardwareAcceleratedDecoding: false,
-    videoCodec: 'H264',
-  });
+  const udpConn = await streamer.createStream(guildId);
 
   udpConn.mediaConnection.setSpeaking(true);
   udpConn.mediaConnection.setVideoStatus(true);
