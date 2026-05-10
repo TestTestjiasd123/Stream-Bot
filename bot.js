@@ -10,7 +10,7 @@ const {
 } = require('discord.js');
 const { getVoiceConnection } = require('@discordjs/voice');
 const { Streamer, VideoStream, AudioStream } = require('@dank074/discord-video-stream');
-const ffmpegPath = require('ffmpeg-static');
+const ffmpegPath = 'ffmpeg';
 const { spawn } = require('child_process');
 const https = require('https');
 const http = require('http');
