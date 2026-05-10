@@ -1,3 +1,8 @@
+process.on('uncaughtException', (err) => {
+  console.error('[FATAL]', err.message, err.stack);
+  process.exit(1);
+});
+
 require('dotenv').config();
 const {
   Client,
@@ -350,4 +355,19 @@ client.once('clientReady', async () => {
   await registerCommands();
 });
 
-// ───
+// ─── Error handlers ───────────────────────────────────────────────────────────
+client.on('error', (err) => {
+  console.error('[Client Error]', err.message);
+});
+
+process.on('unhandledRejection', (err) => {
+  console.error('[Unhandled Rejection]', err?.message);
+});
+
+process.on('SIGINT', () => {
+  for (const [id] of activeStreams) stopStream(id);
+  client.destroy();
+  process.exit(0);
+});
+
+client.login(process.env.DISCORD_TOKEN);
