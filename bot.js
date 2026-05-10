@@ -203,7 +203,15 @@ function stopStream(guildId) {
 // ─── Stream to Discord ────────────────────────────────────────────────────────
 async function streamToDiscord(guildId, channelId, videoUrl, audioUrl) {
   await streamer.joinVoice(guildId, channelId);
-  const udpConn = await streamer.createStream(guildId);
+  const udpConn = await streamer.createStream(guildId, {
+    width: 1280,
+    height: 720,
+    fps: 30,
+    bitrateKbps: 2500,
+    maxBitrateKbps: 2500,
+    hardwareAcceleratedDecoding: false,
+    videoCodec: 'H264',
+  });
 
   udpConn.mediaConnection.setSpeaking(true);
   udpConn.mediaConnection.setVideoStatus(true);
