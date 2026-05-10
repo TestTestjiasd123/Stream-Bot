@@ -1,7 +1,6 @@
-process.on('uncaughtException', (err) => {
-  console.error('[FATAL]', err.message, err.stack);
-  process.exit(1);
-});
+const dvs = require('@dank074/discord-video-stream');
+console.log('[DVS exports]', Object.keys(dvs));
+process.exit(0);
 
 require('dotenv').config();
 const {
