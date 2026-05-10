@@ -14,7 +14,10 @@ const {
   SlashCommandBuilder,
 } = require('discord.js');
 const { getVoiceConnection } = require('@discordjs/voice');
-const { Streamer, VideoStream, AudioStream } = require('@dank074/discord-video-stream');
+const dvs = require('@dank074/discord-video-stream');
+const Streamer = dvs.Streamer || dvs.default?.Streamer || dvs.default;
+const VideoStream = dvs.VideoStream || dvs.default?.VideoStream;
+const AudioStream = dvs.AudioStream || dvs.default?.AudioStream;
 const ffmpegPath = 'ffmpeg';
 const { spawn } = require('child_process');
 const https = require('https');
