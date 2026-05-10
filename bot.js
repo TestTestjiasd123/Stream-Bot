@@ -30,6 +30,13 @@ const client = new Client({
 const streamer = new Streamer(client);
 const activeStreams = new Map();
 
+// Write YouTube cookies to disk on startup
+const COOKIES_PATH = path.join(os.tmpdir(), 'yt_cookies.txt');
+if (process.env.YOUTUBE_COOKIES) {
+  fs.writeFileSync(COOKIES_PATH, process.env.YOUTUBE_COOKIES);
+  console.log('✅ YouTube cookies written to disk');
+}
+
 // ─── Register slash commands ──────────────────────────────────────────────────
 async function registerCommands() {
   const commands = [
@@ -109,7 +116,7 @@ function isYouTubeUrl(url) {
   return /youtube\.com|youtu\.be/.test(url);
 }
 
-// ─── Get YouTube URLs via yt-dlp with cookies ─────────────────────────────────
+// ─── Get YouTube URLs via yt-dlp ──────────────────────────────────────────────
 function getYtDlpUrls(url) {
   return new Promise((resolve, reject) => {
     const args = [
@@ -118,18 +125,7 @@ function getYtDlpUrls(url) {
       '--get-url',
     ];
 
-    // Use cookies from env if provided
-    if (process.env.YOUTUBE_COOKIES_FILE) {
-      args.push('--cookies', process.env.YOUTUBE_COOKIES_FILE);
-    }
-
-    // Use po_token if provided
-    if (process.env.YT_PO_TOKEN && process.env.YT_VISITOR_DATA) {
-      args.push(
-        '--extractor-args',
-        `youtube:po_token=web+${process.env.YT_PO_TOKEN};visitor_data=${process.env.YT_VISITOR_DATA}`
-      );
-    }
+    if (process.env.YOUTUBE_COOKIES) args.push('--cookies', COOKIES_PATH);
 
     args.push(url);
 
@@ -158,16 +154,7 @@ function getYtDlpInfo(url) {
   return new Promise((resolve, reject) => {
     const args = ['--no-playlist', '-j', '--skip-download'];
 
-    if (process.env.YOUTUBE_COOKIES_FILE) {
-      args.push('--cookies', process.env.YOUTUBE_COOKIES_FILE);
-    }
-
-    if (process.env.YT_PO_TOKEN && process.env.YT_VISITOR_DATA) {
-      args.push(
-        '--extractor-args',
-        `youtube:po_token=web+${process.env.YT_PO_TOKEN};visitor_data=${process.env.YT_VISITOR_DATA}`
-      );
-    }
+    if (process.env.YOUTUBE_COOKIES) args.push('--cookies', COOKIES_PATH);
 
     args.push(url);
 
@@ -199,10 +186,7 @@ function stopStream(guildId) {
   if (state) {
     state.ffmpegVideo?.kill('SIGKILL');
     state.ffmpegAudio?.kill('SIGKILL');
-    // Clean up temp file if exists
-    if (state.tmpFile) {
-      fs.unlink(state.tmpFile, () => {});
-    }
+    if (state.tmpFile) fs.unlink(state.tmpFile, () => {});
     try { streamer.stopStream(guildId); } catch (_) {}
     try { getVoiceConnection(guildId)?.destroy(); } catch (_) {}
     activeStreams.delete(guildId);
@@ -235,7 +219,7 @@ async function streamToDiscord(guildId, channelId, videoUrl, audioUrl) {
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   ffmpegVideo.stderr.on('data', (d) => process.stderr.write(`[V] ${d}`));
-  ffmpegVideo.on('error', (e) => console.error('[ffmpegVideo error]', e));
+  ffmpegVideo.on('error', (e) => console.error('[ffmpegVideo error]', e.message));
 
   const videoStream = new VideoStream(udpConn, 30, 1000 / 30);
   ffmpegVideo.stdout.pipe(videoStream);
@@ -249,7 +233,7 @@ async function streamToDiscord(guildId, channelId, videoUrl, audioUrl) {
   ], { stdio: ['ignore', 'pipe', 'pipe'] });
 
   ffmpegAudio.stderr.on('data', (d) => process.stderr.write(`[A] ${d}`));
-  ffmpegAudio.on('error', (e) => console.error('[ffmpegAudio error]', e));
+  ffmpegAudio.on('error', (e) => console.error('[ffmpegAudio error]', e.message));
 
   const audioStream = new AudioStream(udpConn);
   ffmpegAudio.stdout.pipe(audioStream);
@@ -316,7 +300,6 @@ client.on('interactionCreate', async (interaction) => {
         ({ title, duration, isLive } = info);
 
       } else {
-        // Direct URL — download to temp so ffmpeg doesn't choke on auth headers
         await interaction.editReply('📥 Fetching stream...');
         tmpFile = await downloadToTemp(url);
         videoUrl = tmpFile;
@@ -367,10 +350,4 @@ client.once('clientReady', async () => {
   await registerCommands();
 });
 
-process.on('SIGINT', () => {
-  for (const [id] of activeStreams) stopStream(id);
-  client.destroy();
-  process.exit(0);
-});
-
-client.login(process.env.DISCORD_TOKEN);
+// ───
