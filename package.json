@@ -6,10 +6,9 @@
     "start": "node bot.js"
   },
   "dependencies": {
-    "@dank074/discord-video-stream": "^3.0.0",
+    "@dank074/discord-video-stream": "2.2.0",
     "@discordjs/opus": "^0.9.0",
     "@discordjs/voice": "^0.17.0",
-    "@distube/ytdl-core": "^4.16.10",
     "discord.js": "^14.15.0",
     "dotenv": "^16.4.5",
     "libsodium-wrappers": "^0.7.13",
